@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c2410c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Journal alimentaire">
+<title>Journal alimentaire</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Journal">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#f7f5f2; --card:#ffffff; --ink:#1c1917; --muted:#6b6560; --line:#e7e2dc;
+  --accent:#c2410c; --accent-soft:#fdeee6; --danger:#b42318; --ok:#15803d; --r:12px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121110;--card:#1c1a18;--ink:#ebe7e2;--muted:#a19a93;--line:#2c2926;
+        --accent:#f0885a;--accent-soft:#3a2418;--danger:#e0715f;--ok:#6fcf8f}
+}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+     background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+h1,h2,h3{margin:0;font-weight:600}
+button{font:inherit;color:inherit}
+input,select,textarea{font:inherit;color:inherit}
+
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.top-in{max-width:560px;margin:0 auto;padding:12px 14px;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.top h1{font-size:16px;letter-spacing:-.01em}
+.top .sub{font-size:12px;color:var(--muted);white-space:nowrap}
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 96px}
+.view{display:none}
+.view.on{display:block}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card h2{font-size:14.5px;margin-bottom:8px}
+.card.alert{background:var(--accent-soft);border-color:var(--accent)}
+.card.alert p{margin:4px 0 10px;font-size:14px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);
+     background:var(--card);border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.danger{color:var(--danger)}
+.btn.full{width:100%}
+.btn.big{padding:18px 16px;font-size:17px;border-radius:14px}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btns>.btn{flex:1}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 14px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+.capture{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+
+.day{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 2px 8px;display:flex;justify-content:space-between}
+.day:first-child{margin-top:4px}
+.item{display:grid;grid-template-columns:76px 1fr;gap:12px;align-items:center;background:var(--card);
+      border:1px solid var(--line);border-radius:var(--r);padding:8px;margin-bottom:8px;cursor:pointer}
+.item img{width:76px;height:76px;object-fit:cover;border-radius:9px;background:var(--bg);display:block}
+.item .t{font-weight:600;font-size:15px}
+.item .sent{font-weight:400;font-size:12px;color:var(--ok);margin-left:8px}
+.item .c{color:var(--muted);font-size:13.5px;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px}
+
+.field{margin-top:12px}
+.field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+.field input,.field textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card)}
+.field textarea{min-height:64px;resize:vertical}
+.field input.num{width:110px}
+.check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px}
+.check input{width:18px;height:18px}
+
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}
+.nav .lbl{font-weight:600;font-size:14.5px;text-align:center;flex:1}
+.nav .btn{padding:8px 14px}
+.preview{width:100%;border:1px solid var(--line);border-radius:var(--r);background:#fff;display:block;min-height:120px;margin-bottom:8px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:1px solid var(--line);
+      padding-bottom:env(safe-area-inset-bottom)}
+.tabs-in{max-width:560px;margin:0 auto;display:flex}
+.tab{flex:1;border:0;background:none;padding:10px 4px 8px;font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.tab .ic{font-size:20px;line-height:1}
+.tab.on{color:var(--accent);font-weight:600}
+
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:none;align-items:flex-end}
+.sheet-bg.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+.sheet img{width:100%;max-height:42vh;object-fit:contain;border-radius:10px;background:var(--bg);display:block}
+
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+       padding:10px 16px;border-radius:99px;font-size:13.5px;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.stat{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.stat:last-child{border-bottom:0}
+.steps{margin:6px 0 0;padding-left:20px;font-size:14px}
+.steps li{margin:4px 0}
+.ios-share{display:inline-block;width:16px;height:18px;vertical-align:-3px;margin:0 2px}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="top-in"><h1>Journal alimentaire</h1><span class="sub" id="today"></span></div></header>
+
+<main class="wrap">
+
+  <section class="view on" id="v-journal">
+    <div class="card alert" id="spaceAlert" style="display:none">
+      <h2>Les photos prennent de la place</h2>
+      <p id="spaceMsg"></p>
+      <button class="btn primary full" id="btnGoPurge">Faire de la place</button>
+    </div>
+    <div class="card alert" id="iosInstall" style="display:none">
+      <h2>Installe d'abord le journal sur ton iPhone</h2>
+      <ol class="steps">
+        <li>Ouvre cette page dans <b>Safari</b>.</li>
+        <li>Touche le bouton <b>Partager</b> <svg class="ios-share" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V1M4.5 4.5 8 1l3.5 3.5M5 7H2.5v9.5h11V7H11"/></svg> en bas de l'écran.</li>
+        <li>Choisis <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>.</li>
+        <li>Ouvre ensuite le journal <b>depuis son icône</b>, et toujours depuis elle.</li>
+      </ol>
+      <p class="small" style="margin:10px 0 0">Important : les photos prises ici, dans Safari, ne se retrouveront pas dans l'appli installée, et Safari peut les effacer au bout de quelques jours sans utilisation.</p>
+      <button class="btn full" id="btnIosLater" style="margin-top:10px">Plus tard</button>
+    </div>
+    <div class="capture">
+      <button class="btn primary big" id="btnCam">📷 Photographier mon repas</button>
+      <button class="btn full" id="btnGal">Ajouter une photo déjà prise</button>
+    </div>
+    <div id="list"></div>
+    <p class="empty" id="empty">Aucune photo pour l'instant.<br>Appuie sur le bouton orange à chaque repas.</p>
+  </section>
+
+  <section class="view" id="v-synthese">
+    <div class="card">
+      <div class="row">
+        <h2 style="margin:0">Synthèse</h2>
+        <div class="chips">
+          <button class="chip on" data-mode="jour">Jour</button>
+          <button class="chip" data-mode="semaine">Semaine</button>
+        </div>
+      </div>
+      <div class="nav">
+        <button class="btn" id="prev">‹</button>
+        <div class="lbl" id="periodLbl"></div>
+        <button class="btn" id="next">›</button>
+      </div>
+      <div id="previews"></div>
+      <div class="btns">
+        <button class="btn primary" id="btnShare" disabled>Envoyer…</button>
+        <button class="btn" id="btnSave" disabled>Enregistrer</button>
+      </div>
+      <p class="small muted" style="margin:10px 0 0">« Envoyer… » ouvre le menu de partage du téléphone : WhatsApp, Mail, SMS, etc. <b>Dans WhatsApp, touche « HD » avant d'envoyer</b>, sinon WhatsApp réduit l'image et elle arrive floue. Encore plus sûr : « Enregistrer l'image », puis dans WhatsApp trombone → Document. Les photos envoyées sont marquées ✓ dans le journal.</p>
+    </div>
+  </section>
+
+  <section class="view" id="v-reglages">
+    <div class="card">
+      <h2>Mes photos</h2>
+      <div class="stat"><span>Photos enregistrées</span><b id="stN">–</b></div>
+      <div class="stat"><span>Jours couverts</span><b id="stD">–</b></div>
+      <div class="stat"><span>Déjà envoyées</span><b id="stE">–</b></div>
+      <div class="stat"><span>Espace utilisé par les photos</span><b id="stS">–</b></div>
+      <div class="stat"><span>Protégées contre le nettoyage automatique</span><b id="stP">–</b></div>
+      <p class="small muted" style="margin:10px 0 0">Tout est stocké dans ce téléphone, rien n'est envoyé sur internet. Une sauvegarde régulière évite de tout perdre si le téléphone change ou si le navigateur est nettoyé.</p>
+    </div>
+    <div class="card" id="purgeCard">
+      <h2>Faire de la place</h2>
+      <div class="field">
+        <label for="limitMo">M'alerter au-delà de (Mo)</label>
+        <input type="number" class="num" id="limitMo" min="50" step="50" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Supprimer les photos de plus de</label>
+        <div class="chips">
+          <button class="chip" data-weeks="4">4 semaines</button>
+          <button class="chip on" data-weeks="8">8 semaines</button>
+          <button class="chip" data-weeks="12">3 mois</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="onlySent" checked> Seulement celles déjà envoyées</label>
+      <p class="small" id="purgeInfo" style="margin:12px 0 0"></p>
+      <button class="btn danger full" id="btnPurge" style="margin-top:10px" disabled>Supprimer ces photos</button>
+      <p class="small muted" style="margin:10px 0 0">Suppression définitive : fais d'abord une sauvegarde si tu veux les garder. Pense aussi à effacer de la galerie et des Téléchargements les images de synthèse et les anciennes sauvegardes déjà envoyées.</p>
+    </div>
+    <div class="card">
+      <h2>Sauvegarde</h2>
+      <div class="btns" style="margin-top:4px">
+        <button class="btn" id="btnExport">Exporter</button>
+        <button class="btn" id="btnImport">Restaurer</button>
+      </div>
+      <p class="small muted" style="margin:10px 0 0">L'export produit un fichier à garder (Drive, mail à soi-même…). « Restaurer » relit ce fichier et ajoute les photos manquantes.</p>
+    </div>
+    <div class="card" id="installCard" style="display:none">
+      <h2>Installer sur l'écran d'accueil</h2>
+      <button class="btn primary full" id="btnInstall">Installer l'appli</button>
+      <div id="iosSteps" style="display:none"><ol class="steps">
+        <li>Ouvre cette page dans <b>Safari</b>.</li>
+        <li>Touche le bouton <b>Partager</b> <svg class="ios-share" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V1M4.5 4.5 8 1l3.5 3.5M5 7H2.5v9.5h11V7H11"/></svg> en bas de l'écran.</li>
+        <li>Choisis <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>.</li>
+        <li>Ouvre ensuite le journal <b>depuis son icône</b>, et toujours depuis elle.</li>
+      </ol></div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabs"><div class="tabs-in">
+  <button class="tab on" data-view="journal"><span class="ic">📷</span>Journal</button>
+  <button class="tab" data-view="synthese"><span class="ic">🗓️</span>Synthèse</button>
+  <button class="tab" data-view="reglages"><span class="ic">💾</span>Sauvegarde</button>
+</div></nav>
+
+<input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fileGal" accept="image/*" multiple hidden>
+<input type="file" id="fileImport" accept="application/json,.json" hidden>
+
+<div class="sheet-bg" id="sheet">
+  <div class="sheet">
+    <img id="shImg" alt="">
+    <div class="field"><label>Date et heure du repas</label><input type="datetime-local" id="shTs"></div>
+    <div class="field"><label>Commentaire (facultatif)</label><textarea id="shC" placeholder="Boisson, quantité, restaurant, grignotage…"></textarea></div>
+    <div class="btns">
+      <button class="btn primary" id="shSave">Enregistrer</button>
+      <button class="btn" id="shClose">Fermer</button>
+    </div>
+    <button class="btn danger full" id="shDel" style="margin-top:8px">Supprimer cette photo</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Base de données locale (IndexedDB) ---------- */
+const DB_NAME = 'journal-alimentaire', STORE = 'entries';
+let dbP = null;
+function db(){
+  return dbP || (dbP = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE, {keyPath: 'id'});
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+}
+async function dbAll(){ const d = await db(); return new Promise((res, rej) => { const r = d.transaction(STORE).objectStore(STORE).getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function dbPut(e){ const d = await db(); return new Promise((res, rej) => { const t = d.transaction(STORE, 'readwrite'); t.objectStore(STORE).put(e); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+async function dbDel(id){ const d = await db(); return new Promise((res, rej) => { const t = d.transaction(STORE, 'readwrite'); t.objectStore(STORE).delete(id); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+
+let entries = [];          // {id, ts, comment, blob, thumb, w, h, sentAt}
+const $ = id => document.getElementById(id);
+
+/* ---------- Utilitaires ---------- */
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtTime = ts => new Date(ts).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+const fmtDayLong = ts => cap(new Date(ts).toLocaleDateString('fr-FR', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'}));
+const fmtDayShort = ts => cap(new Date(ts).toLocaleDateString('fr-FR', {weekday: 'long', day: 'numeric', month: 'long'}));
+function dayKey(ts){ const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function startOfDay(ts){ const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function mondayOf(ts){ const d = new Date(startOfDay(ts)); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); }
+function addDays(ts, n){ const d = new Date(ts); d.setDate(d.getDate() + n); return d.getTime(); }
+function toInput(ts){ const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+function newId(){ return (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2)); }
+function sortEntries(){ entries.sort((a, b) => b.ts - a.ts); }
+function entriesOfDay(ts){ const k = dayKey(ts); return entries.filter(e => dayKey(e.ts) === k).sort((a, b) => a.ts - b.ts); }
+const sizeOf = e => (e.blob ? e.blob.size : 0) + (e.thumb ? e.thumb.size : 0);
+const totalSize = list => list.reduce((s, e) => s + sizeOf(e), 0);
+function fmtSize(b){
+  if (b >= 1e9) return (b / 1e9).toFixed(2).replace('.', ',') + ' Go';
+  if (b >= 1e6) return (b / 1e6).toFixed(b >= 1e8 ? 0 : 1).replace('.', ',') + ' Mo';
+  return Math.round(b / 1e3) + ' Ko';
+}
+
+let toastT;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+
+/* Réglages conservés dans le téléphone (seuil d'alerte). */
+const LIMIT_KEY = 'journal-alimentaire-seuil-mo', DEFAULT_LIMIT_MO = 500;
+let limitMo = DEFAULT_LIMIT_MO;
+try { const v = parseInt(localStorage.getItem(LIMIT_KEY), 10); if (v > 0) limitMo = v; } catch (e) {}
+
+function loadImage(blob){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob); const im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); res(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image illisible')); };
+    im.src = url;
+  });
+}
+function scaleTo(img, max, q){
+  const r = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * r), h = Math.round(img.naturalHeight * r);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  return new Promise(res => c.toBlob(b => res({blob: b, w, h}), 'image/jpeg', q));
+}
+
+/* Date de prise de vue lue dans les données EXIF d'un JPEG (photo venant de la galerie). */
+async function exifDate(file){
+  try{
+    const v = new DataView(await file.slice(0, 256 * 1024).arrayBuffer());
+    if (v.getUint16(0) !== 0xFFD8) return null;
+    let o = 2;
+    while (o + 4 <= v.byteLength){
+      const m = v.getUint16(o);
+      if (m === 0xFFDA || m === 0xFFD9) break;
+      const len = v.getUint16(o + 2);
+      if (m === 0xFFE1 && v.getUint32(o + 4) === 0x45786966){
+        const t = o + 10, le = v.getUint16(t) === 0x4949;
+        const u16 = p => v.getUint16(p, le), u32 = p => v.getUint32(p, le);
+        if (u16(t + 2) !== 0x2A) return null;
+        const readIfd = (off, want) => {
+          const n = u16(t + off), out = {};
+          for (let i = 0; i < n; i++){
+            const e = t + off + 2 + i * 12, tag = u16(e);
+            if (!want.includes(tag)) continue;
+            const type = u16(e + 2), cnt = u32(e + 4);
+            if (type === 2){
+              let vo = cnt > 4 ? t + u32(e + 8) : e + 8, s = '';
+              for (let k = 0; k < cnt - 1 && vo + k < v.byteLength; k++) s += String.fromCharCode(v.getUint8(vo + k));
+              out[tag] = s;
+            } else if (type === 4) out[tag] = u32(e + 8);
+          }
+          return out;
+        };
+        const ifd0 = readIfd(u32(t + 4), [0x8769, 0x0132]);
+        let s = null;
+        if (ifd0[0x8769]) s = readIfd(ifd0[0x8769], [0x9003])[0x9003] || null;
+        s = s || ifd0[0x0132] || null;
+        const m2 = s && /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(s);
+        if (!m2) return null;
+        const d = new Date(+m2[1], m2[2] - 1, +m2[3], +m2[4], +m2[5], +m2[6]);
+        return isNaN(d) ? null : d.getTime();
+      }
+      o += 2 + len;
+    }
+  } catch (e) {}
+  return null;
+}
+
+/* ---------- Ajout de photos ---------- */
+async function addFiles(files, fromCamera){
+  let last = null, n = 0;
+  for (const f of files){
+    try{
+      const img = await loadImage(f);
+      const [full, thumb] = await Promise.all([scaleTo(img, 1280, 0.82), scaleTo(img, 320, 0.75)]);
+      const ts = fromCamera ? Date.now() : ((await exifDate(f)) || f.lastModified || Date.now());
+      const e = {id: newId(), ts, comment: '', blob: full.blob, thumb: thumb.blob, w: full.w, h: full.h, sentAt: null};
+      await dbPut(e); entries.push(e); last = e; n++;
+    } catch (err){ toast('Photo illisible : ' + (f.name || '')); }
+  }
+  sortEntries(); render();
+  if (n && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if (n === 1) openSheet(last);
+  else if (n > 1) toast(n + ' photos ajoutées');
+}
+$('btnCam').onclick = () => $('fileCam').click();
+$('btnGal').onclick = () => $('fileGal').click();
+$('fileCam').onchange = e => { addFiles([...e.target.files], true); e.target.value = ''; };
+$('fileGal').onchange = e => { addFiles([...e.target.files], false); e.target.value = ''; };
+
+/* ---------- Liste du journal ---------- */
+let urls = [];
+function render(){
+  urls.forEach(u => URL.revokeObjectURL(u)); urls = [];
+  const list = $('list'); list.innerHTML = '';
+  $('empty').style.display = entries.length ? 'none' : 'block';
+  const days = new Map();
+  for (const e of entries){ const k = dayKey(e.ts); if (!days.has(k)) days.set(k, []); days.get(k).push(e); }
+  for (const [k, arr] of days){
+    arr.sort((a, b) => a.ts - b.ts);
+    const h = document.createElement('div'); h.className = 'day';
+    h.innerHTML = '<span>' + fmtDayShort(arr[0].ts) + '</span><span>' + arr.length + ' photo' + (arr.length > 1 ? 's' : '') + '</span>';
+    list.appendChild(h);
+    for (const e of arr){
+      const u = URL.createObjectURL(e.thumb || e.blob); urls.push(u);
+      const it = document.createElement('div'); it.className = 'item';
+      it.innerHTML = '<img alt=""><div><div class="t"></div><div class="c"></div></div>';
+      it.querySelector('img').src = u;
+      it.querySelector('.t').textContent = fmtTime(e.ts);
+      if (e.sentAt){ const s = document.createElement('span'); s.className = 'sent'; s.textContent = '✓ envoyée'; it.querySelector('.t').appendChild(s); }
+      it.querySelector('.c').textContent = e.comment || 'Sans commentaire';
+      it.onclick = () => openSheet(e);
+      list.appendChild(it);
+    }
+  }
+  renderStats();
+}
+
+/* ---------- Fiche d'une photo ---------- */
+let cur = null, curUrl = null;
+function openSheet(e){
+  cur = e;
+  if (curUrl) URL.revokeObjectURL(curUrl);
+  curUrl = URL.createObjectURL(e.blob); $('shImg').src = curUrl;
+  $('shTs').value = toInput(e.ts); $('shC').value = e.comment || '';
+  $('sheet').classList.add('on');
+}
+function closeSheet(){ $('sheet').classList.remove('on'); cur = null; }
+$('shClose').onclick = closeSheet;
+$('sheet').addEventListener('click', ev => { if (ev.target === $('sheet')) closeSheet(); });
+$('shSave').onclick = async () => {
+  if (!cur) return;
+  const d = new Date($('shTs').value);
+  if (!isNaN(d)) cur.ts = d.getTime();
+  cur.comment = $('shC').value.trim();
+  await dbPut(cur); sortEntries(); render(); closeSheet(); toast('Enregistré');
+};
+$('shDel').onclick = async () => {
+  if (!cur || !confirm('Supprimer cette photo ?')) return;
+  await dbDel(cur.id); entries = entries.filter(x => x.id !== cur.id); render(); closeSheet(); toast('Photo supprimée');
+};
+
+/* ---------- Synthèse (images à envoyer) ---------- */
+let mode = 'jour', period = startOfDay(Date.now()), montages = [], montageEntries = [], previewUrls = [], renderSeq = 0;
+
+function fitText(ctx, s, maxW){
+  if (ctx.measureText(s).width <= maxW) return s;
+  while (s.length && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  return s + '…';
+}
+function drawCover(ctx, img, x, y, w, h){
+  const s = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const sw = w / s, sh = h / s, sx = (img.naturalWidth - sw) / 2, sy = (img.naturalHeight - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+/* L'iPhone refuse les canvas de plus de ~16 millions de pixels : au-delà, on réduit l'image entière. */
+function newCanvas(w, h){
+  const k = Math.min(1, Math.sqrt(15e6 / (w * h)));
+  const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+  const ctx = c.getContext('2d'); ctx.scale(k, k); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#1c1917'; ctx.textBaseline = 'top';
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  return [c, ctx];
+}
+async function withImages(list){ return Promise.all(list.map(e => loadImage(e.blob).catch(() => null))); }
+
+/* Mise en page commune jour / semaine : jours empilés, 3 photos par ligne en grand,
+   commentaire complet sur plusieurs lignes, jours sans photo réduits à une ligne.
+   Pensée pour être lue sur un ordinateur (largeur 1600 px). */
+function wrapLines(ctx, text, maxW, maxLines){
+  const words = String(text).split(/\s+/).filter(Boolean), lines = [];
+  let line = '';
+  for (const w of words){
+    const t = line ? line + ' ' + w : w;
+    if (ctx.measureText(t).width <= maxW || !line){ line = t; continue; }
+    lines.push(line); line = w;
+  }
+  if (line) lines.push(line);
+  if (lines.length > maxLines){
+    const keep = lines.slice(0, maxLines);
+    keep[maxLines - 1] = fitText(ctx, keep[maxLines - 1] + ' …', maxW);
+    return keep;
+  }
+  return lines;
+}
+async function drawPeriod(days, title, subtitle){
+  const W = 1600, pad = 40, cols = 3, gap = 22;
+  const cellW = Math.floor((W - pad * 2 - gap * (cols - 1)) / cols), imgH = Math.round(cellW * 0.75);
+  const F_TITLE = '700 46px system-ui, sans-serif', F_SUB = '400 28px system-ui, sans-serif',
+        F_DAY = '700 36px system-ui, sans-serif', F_DATE = '400 30px system-ui, sans-serif',
+        F_TIME = '700 32px system-ui, sans-serif', F_COM = '400 29px system-ui, sans-serif',
+        LH = 38, DAY_H = 70, EMPTY_H = 58, MAX_LINES = 6;
+  const meas = document.createElement('canvas').getContext('2d'); meas.font = F_COM;
+  const blocks = days.map(d => {
+    const list = entriesOfDay(d);
+    const lines = list.map(e => e.comment ? wrapLines(meas, e.comment, cellW, MAX_LINES) : []);
+    const rows = [];
+    for (let i = 0; i < list.length; i += cols){
+      const n = Math.max(0, ...lines.slice(i, i + cols).map(l => l.length));
+      rows.push(imgH + 12 + 40 + n * LH + 26);
+    }
+    return {d, list, lines, rows, h: list.length ? DAY_H + rows.reduce((s, r) => s + r, 0) + 10 : EMPTY_H};
+  });
+  const headH = subtitle ? 110 : 70;
+  const H = pad + headH + blocks.reduce((s, b) => s + b.h + 14, 0) + pad;
+  const [c, ctx] = newCanvas(W, H);
+  ctx.font = F_TITLE; ctx.fillText(title, pad, pad);
+  if (subtitle){ ctx.font = F_SUB; ctx.fillStyle = '#6b6560'; ctx.fillText(subtitle, pad, pad + 60); }
+  let y = pad + headH;
+  for (const b of blocks){
+    const dayName = cap(new Date(b.d).toLocaleDateString('fr-FR', {weekday: 'long'}));
+    const dayDate = new Date(b.d).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long'});
+    if (!b.list.length){
+      ctx.fillStyle = '#f5f2ee'; ctx.fillRect(pad, y, W - pad * 2, EMPTY_H);
+      ctx.fillStyle = '#6b6560'; ctx.font = F_DATE;
+      ctx.fillText(dayName + ' ' + dayDate + ' — aucune photo', pad + 18, y + 13);
+      y += b.h + 14; continue;
+    }
+    ctx.fillStyle = '#f0ece7'; ctx.fillRect(pad, y, W - pad * 2, DAY_H);
+    ctx.fillStyle = '#1c1917'; ctx.font = F_DAY; ctx.fillText(dayName, pad + 18, y + 16);
+    const dw = ctx.measureText(dayName + '  ').width;
+    ctx.fillStyle = '#6b6560'; ctx.font = F_DATE; ctx.fillText(dayDate, pad + 18 + dw, y + 21);
+    const cnt = b.list.length + ' repas'; ctx.fillText(cnt, W - pad - 18 - ctx.measureText(cnt).width, y + 21);
+    const imgs = await withImages(b.list);
+    let ry = y + DAY_H + 14;
+    b.rows.forEach((rh, r) => {
+      for (let k = 0; k < cols; k++){
+        const i = r * cols + k; if (i >= b.list.length) break;
+        const e = b.list[i], x = pad + k * (cellW + gap);
+        ctx.fillStyle = '#ddd'; ctx.fillRect(x, ry, cellW, imgH);
+        if (imgs[i]) drawCover(ctx, imgs[i], x, ry, cellW, imgH);
+        ctx.fillStyle = '#1c1917'; ctx.font = F_TIME; ctx.fillText(fmtTime(e.ts), x, ry + imgH + 12);
+        ctx.fillStyle = '#44403c'; ctx.font = F_COM;
+        b.lines[i].forEach((ln, j) => ctx.fillText(ln, x, ry + imgH + 12 + 44 + j * LH));
+      }
+      ry += rh;
+    });
+    y += b.h + 14;
+  }
+  return c;
+}
+function periodLabel(){
+  if (mode === 'jour') return fmtDayShort(period);
+  const fin = addDays(period, 6);
+  return 'Du ' + new Date(period).toLocaleDateString('fr-FR', {day: 'numeric', month: 'short'}) + ' au ' + new Date(fin).toLocaleDateString('fr-FR', {day: 'numeric', month: 'short'});
+}
+async function renderSynthese(){
+  const seq = ++renderSeq;
+  $('periodLbl').textContent = periodLabel();
+  $('btnShare').disabled = $('btnSave').disabled = true; montages = []; montageEntries = [];
+  let canvas, name;
+  if (mode === 'jour'){
+    montageEntries = entriesOfDay(period);
+    const n = montageEntries.length;
+    canvas = await drawPeriod([period], fmtDayLong(period), n ? n + ' repas photographié' + (n > 1 ? 's' : '') : 'Aucune photo ce jour-là');
+    name = 'repas-' + dayKey(period) + '.jpg';
+  } else {
+    const days = Array.from({length: 7}, (_, i) => addDays(period, i)), fin = addDays(period, 6);
+    montageEntries = days.flatMap(d => entriesOfDay(d));
+    const n = montageEntries.length;
+    canvas = await drawPeriod(days,
+      'Semaine du ' + new Date(period).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long'}) + ' au ' + new Date(fin).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'}),
+      n + ' repas photographié' + (n > 1 ? 's' : ''));
+    name = 'repas-semaine-' + dayKey(period) + '.jpg';
+  }
+  if (seq !== renderSeq) return;
+  const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
+  if (seq !== renderSeq) return;
+  montages = [{blob, name}];
+  previewUrls.forEach(u => URL.revokeObjectURL(u)); previewUrls = [];
+  const box = $('previews'); box.innerHTML = '';
+  const u = URL.createObjectURL(blob); previewUrls.push(u);
+  const im = document.createElement('img'); im.className = 'preview'; im.alt = 'Aperçu de la synthèse'; im.src = u;
+  box.appendChild(im);
+  $('btnShare').textContent = 'Envoyer…'; $('btnSave').textContent = "Enregistrer l'image";
+  $('btnShare').disabled = $('btnSave').disabled = false;
+}
+document.querySelectorAll('.chip[data-mode]').forEach(ch => ch.onclick = () => {
+  document.querySelectorAll('.chip[data-mode]').forEach(x => x.classList.toggle('on', x === ch));
+  mode = ch.dataset.mode; period = mode === 'jour' ? startOfDay(Date.now()) : mondayOf(Date.now()); renderSynthese();
+});
+$('prev').onclick = () => { period = addDays(period, mode === 'jour' ? -1 : -7); renderSynthese(); };
+$('next').onclick = () => { period = addDays(period, mode === 'jour' ? 1 : 7); renderSynthese(); };
+
+function download(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
+}
+function downloadAll(list){ list.forEach((m, i) => setTimeout(() => download(m.blob, m.name), i * 600)); }
+
+/* Marque comme envoyées les photos incluses dans la synthèse partagée. */
+async function markSent(list){
+  const now = Date.now(); let n = 0;
+  for (const e of list){ if (!e.sentAt){ e.sentAt = now; await dbPut(e); n++; } }
+  if (n) render();
+}
+function shareMontages(){
+  if (!montages.length) return;
+  const sent = montageEntries.slice();
+  const files = montages.map(m => new File([m.blob], m.name, {type: m.blob.type}));
+  if (navigator.canShare && navigator.canShare({files})){
+    navigator.share({files, title: 'Journal alimentaire'})
+      .then(() => markSent(sent))
+      .catch(err => { if (err && err.name !== 'AbortError'){ downloadAll(montages); markSent(sent); } });
+  } else { downloadAll(montages); markSent(sent); }
+}
+$('btnShare').onclick = shareMontages;
+$('btnSave').onclick = () => { if (montages.length) downloadAll(montages); };
+
+/* ---------- Faire de la place ---------- */
+let purgeWeeks = 8;
+function purgeCandidates(){
+  const cutoff = startOfDay(Date.now()) - purgeWeeks * 7 * 864e5, onlySent = $('onlySent').checked;
+  return entries.filter(e => e.ts < cutoff && (!onlySent || e.sentAt));
+}
+function renderPurge(){
+  const c = purgeCandidates();
+  $('purgeInfo').textContent = c.length
+    ? c.length + ' photo' + (c.length > 1 ? 's' : '') + ' concernée' + (c.length > 1 ? 's' : '') + ' · ' + fmtSize(totalSize(c)) + ' libérés'
+    : 'Aucune photo ne correspond à ces critères.';
+  $('btnPurge').disabled = !c.length;
+  $('btnPurge').textContent = c.length ? 'Supprimer ces ' + c.length + ' photo' + (c.length > 1 ? 's' : '') : 'Supprimer ces photos';
+}
+document.querySelectorAll('.chip[data-weeks]').forEach(ch => ch.onclick = () => {
+  document.querySelectorAll('.chip[data-weeks]').forEach(x => x.classList.toggle('on', x === ch));
+  purgeWeeks = +ch.dataset.weeks; renderPurge();
+});
+$('onlySent').onchange = renderPurge;
+$('btnPurge').onclick = async () => {
+  const c = purgeCandidates();
+  if (!c.length) return;
+  if (!confirm('Supprimer définitivement ' + c.length + ' photo' + (c.length > 1 ? 's' : '') + ' (' + fmtSize(totalSize(c)) + ') ?\n\nPas de retour en arrière sans sauvegarde.')) return;
+  const ids = new Set();
+  for (const e of c){ await dbDel(e.id); ids.add(e.id); }
+  entries = entries.filter(e => !ids.has(e.id));
+  render(); toast(ids.size + ' photo' + (ids.size > 1 ? 's' : '') + ' supprimée' + (ids.size > 1 ? 's' : ''));
+};
+$('limitMo').value = limitMo;
+$('limitMo').onchange = () => {
+  const v = parseInt($('limitMo').value, 10);
+  if (!(v >= 50)){ $('limitMo').value = limitMo; return toast('Seuil minimum : 50 Mo'); }
+  limitMo = v;
+  try { localStorage.setItem(LIMIT_KEY, String(v)); } catch (e) {}
+  renderStats(); toast('Alerte réglée à ' + v + ' Mo');
+};
+
+/* Alerte affichée en haut du journal quand les photos dépassent le seuil,
+   ou quand le navigateur approche de la limite d'espace qu'il accorde à l'appli. */
+function checkSpace(used, est){
+  const overLimit = used > limitMo * 1e6;
+  const nearQuota = est && est.quota && est.usage / est.quota > 0.8;
+  const show = entries.length && (overLimit || nearQuota);
+  $('spaceAlert').style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const sent = entries.filter(e => e.sentAt).length;
+  $('spaceMsg').textContent = (nearQuota && !overLimit
+      ? 'Le téléphone approche de la place qu\'il réserve à l\'appli (' + fmtSize(used) + ' de photos).'
+      : 'Tes photos occupent ' + fmtSize(used) + ' (alerte réglée à ' + limitMo + ' Mo).')
+    + ' Pense à supprimer les photos déjà envoyées et les plus anciennes'
+    + (sent ? ' : ' + sent + ' sont déjà parties chez la diététicienne.' : '.');
+}
+
+/* ---------- Sauvegarde / restauration ---------- */
+const blobToDataUrl = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+$('btnExport').onclick = async () => {
+  if (!entries.length) return toast('Rien à sauvegarder');
+  toast('Préparation de la sauvegarde…');
+  const out = [];
+  for (const e of entries) out.push({id: e.id, ts: e.ts, comment: e.comment || '', sentAt: e.sentAt || null, image: await blobToDataUrl(e.blob)});
+  const blob = new Blob([JSON.stringify({app: 'journal-alimentaire', version: 1, exportedAt: Date.now(), entries: out})], {type: 'application/json'});
+  download(blob, 'journal-alimentaire-sauvegarde-' + dayKey(Date.now()) + '.json');
+};
+$('btnImport').onclick = () => $('fileImport').click();
+$('fileImport').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    if (data.app !== 'journal-alimentaire' || !Array.isArray(data.entries)) throw new Error('format');
+    const have = new Set(entries.map(x => x.id)); let n = 0;
+    for (const it of data.entries){
+      if (have.has(it.id)) continue;
+      const blob = await (await fetch(it.image)).blob();
+      const img = await loadImage(blob), thumb = await scaleTo(img, 320, 0.75);
+      const ent = {id: it.id, ts: it.ts, comment: it.comment || '', blob, thumb: thumb.blob, w: img.naturalWidth, h: img.naturalHeight, sentAt: it.sentAt || null};
+      await dbPut(ent); entries.push(ent); n++;
+    }
+    sortEntries(); render(); toast(n ? n + ' photo' + (n > 1 ? 's' : '') + ' restaurée' + (n > 1 ? 's' : '') : 'Rien de nouveau dans ce fichier');
+  } catch (err){ toast('Ce fichier n\'est pas une sauvegarde du journal'); }
+};
+
+/* ---------- Statistiques et installation ---------- */
+async function renderStats(){
+  const used = totalSize(entries);
+  $('stN').textContent = entries.length;
+  $('stD').textContent = new Set(entries.map(e => dayKey(e.ts))).size;
+  $('stE').textContent = entries.filter(e => e.sentAt).length;
+  $('stS').textContent = fmtSize(used);
+  renderPurge();
+  let est = null;
+  try{
+    est = await navigator.storage.estimate();
+    $('stP').textContent = (await navigator.storage.persisted()) ? 'oui' : 'pas encore';
+  } catch (e){ $('stP').textContent = '–'; }
+  checkSpace(used, est);
+}
+let installEv = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('installCard').style.display = 'block'; });
+/* iPhone / iPad : pas de bouton d'installation, on affiche la marche à suivre dans Safari. */
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+if (isIOS && !isStandalone){
+  $('iosInstall').style.display = 'block';
+  $('installCard').style.display = 'block'; $('btnInstall').style.display = 'none'; $('iosSteps').style.display = 'block';
+}
+$('btnIosLater').onclick = () => { $('iosInstall').style.display = 'none'; };
+$('btnInstall').onclick = async () => { if (!installEv) return; installEv.prompt(); await installEv.userChoice; installEv = null; $('installCard').style.display = 'none'; };
+
+/* ---------- Navigation ---------- */
+function showView(name){
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.view === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + name));
+  if (name === 'synthese') renderSynthese();
+  if (name === 'reglages') renderStats();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showView(t.dataset.view));
+$('btnGoPurge').onclick = () => { showView('reglages'); $('purgeCard').scrollIntoView({behavior: 'smooth', block: 'start'}); };
+
+/* ---------- Démarrage ---------- */
+$('today').textContent = fmtDayShort(Date.now());
+dbAll().then(all => { entries = all; sortEntries(); render(); }).catch(() => toast('Impossible d\'ouvrir le stockage du téléphone'));
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
